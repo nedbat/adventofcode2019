@@ -52,3 +52,23 @@ def part1():
 
 if __name__ == "__main__":
     part1()
+
+
+def output(mem, noun, verb):
+    mem = list(mem)
+    mem[1] = noun
+    mem[2] = verb
+    final = final_state(mem)
+    return final[0]
+
+TARGET = 19690720
+
+def part2():
+    for noun in range(100):
+        for verb in range(100):
+            answer = output(INPUT, noun, verb)
+            if answer == TARGET:
+                print(f"Part 2: noun is {noun}, verb is {verb}, answer is {100*noun + verb}")
+
+if __name__ == "__main__":
+    part2()
