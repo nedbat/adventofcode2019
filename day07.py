@@ -4,7 +4,7 @@ import itertools
 
 import pytest
 
-from day05 import CagedIntCode
+from day05 import CagedIntCode, IntCode
 
 class OneOutputIntCode(CagedIntCode):
     def run_to_output(self):
@@ -69,7 +69,7 @@ def max_thruster(mem):
     ([3,23,3,24,1002,24,10,24,1002,23,-1,23, 101,5,23,23,1,24,23,23,4,23,99,0,0], 54321, (0,1,2,3,4)),
     ([3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33, 1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0], 65210, (1,0,4,3,2)),
 ])
-def test_run_amplifiers(mem, output, settings):
+def test_max_thruster(mem, output, settings):
     thruster, tsettings = max_thruster(mem)
     assert thruster == output
     assert tsettings == settings
@@ -85,3 +85,70 @@ def part1():
 
 if __name__ == "__main__":
     part1()
+
+
+class NeedInput(Exception):
+    pass
+
+class ChainableIntCode(IntCode):
+    def __init__(self, mem, inputs, outputs):
+        self.inputs = inputs
+        self.outputs = outputs
+        super().__init__(mem, input_fn=self.feed_input, output_fn=self.outputs.append)
+
+    def feed_input(self):
+        if self.inputs:
+            return self.inputs.pop(0)
+        else:
+            self.ip -= 1
+            raise NeedInput()
+
+    def run_until_blocked(self):
+        while True:
+            try:
+                if not self.step():
+                    return False
+            except NeedInput:
+                return True
+
+def cycle_pairs(seq):
+    return zip(seq, seq[1:] + seq[:1])
+
+def test_cycle_pairs():
+    assert list(cycle_pairs([1,2,3,4])) == [(1,2), (2,3), (3,4), (4,1)]
+
+def run_looped_amplifiers(mem, phase_settings):
+    signal_buffers = [[setting] for setting in phase_settings]
+    signal_buffers[0].append(0)
+
+    cpus = [ChainableIntCode(mem, ins, outs) for ins, outs in cycle_pairs(signal_buffers)]
+    while True:
+        any_halted = False
+        for cpu in cpus:
+            if not cpu.run_until_blocked():
+                any_halted = True
+        if any_halted:
+            return signal_buffers[0][-1]
+
+def looped_thruster_values(mem):
+    for settings in itertools.permutations(range(5, 10)):
+        yield run_looped_amplifiers(mem, settings), settings
+
+def max_looped_thruster(mem):
+    return max(looped_thruster_values(mem))
+
+@pytest.mark.parametrize("mem, output, settings", [
+    ([3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5], 139629729, (9,8,7,6,5)),
+    ([3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10], 18216, (9,7,8,5,6)),
+])
+def test_max_looped_thruster(mem, output, settings):
+    thruster, tsettings = max_looped_thruster(mem)
+    assert thruster == output
+    assert tsettings == settings
+
+def part2():
+    thruster, settings = max_looped_thruster(the_program())
+    print(f"Part 2: the max thruster signal is {thruster}")
+    
+if __name__ == "__main__":
+    part2()
