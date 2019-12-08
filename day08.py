@@ -29,3 +29,33 @@ def part1():
 
 if __name__ == "__main__":
     part1()
+
+def flatten_layers(image):
+    wide = len(image[0][0])
+    tall = len(image[0])
+    flat = ["2" * wide for _ in range(tall)]
+
+    for layer in reversed(image):
+        next_flat = []
+        for frow, lrow in zip(flat, layer):
+            next_row = "".join(f if l == "2" else l for f, l in zip(frow, lrow))
+            next_flat.append(next_row)
+        flat = next_flat
+
+    return flat
+
+def test_flatten_layers():
+    image = read_layers("0222112222120000", 2, 2)
+    flat = flatten_layers(image)
+    assert flat == ["01", "10"]
+
+def part2():
+    image = the_image()
+    flat = flatten_layers(image)
+    print(f"Part 2:")
+    art = "#. "
+    for row in flat:
+        print("".join("#. "[int(d)] for d in row))
+
+if __name__ == "__main__":
+    part2()
