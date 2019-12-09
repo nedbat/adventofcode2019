@@ -4,7 +4,7 @@ import itertools
 
 import pytest
 
-from day05 import CagedIntCode, IntCode
+from intcode import CagedIntCode, IntCode, program_from_file
 
 class OneOutputIntCode(CagedIntCode):
     def run_to_output(self):
@@ -75,8 +75,7 @@ def test_max_thruster(mem, output, settings):
     assert tsettings == settings
 
 def the_program():
-    with open("day07_input.txt") as f:
-        return [int(v) for v in f.read().split(",")]
+    return program_from_file("day07_input.txt")
 
 
 def part1():
