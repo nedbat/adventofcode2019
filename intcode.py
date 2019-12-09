@@ -14,21 +14,27 @@ class Op(Enum):
     JUMP_IF_FALSE = 6
     LESS_THAN = 7
     EQUALS = 8
+    ADJREL = 9
     STOP = 99
 
 class Mode(Enum):
     POSITION = 0
     IMMEDIATE = 1
+    RELATIVE = 2
 
 class IntCode:
     def __init__(self, mem, input_fn=None, output_fn=print):
         self.ip = 0
-        self.mem = list(mem)
+        self.relbase = 0
+        self.mem = dict(enumerate(mem))
         self.input_fn = input_fn
         self.output_fn = output_fn
 
+    def __getitem__(self, addr):
+        return self.mem.get(addr, 0)
+
     def next_instruction(self):
-        inst = self.mem[self.ip]
+        inst = self[self.ip]
         self.ip += 1
         return inst
 
@@ -37,14 +43,23 @@ class IntCode:
         self.modes //= 10
         ivalue = self.next_instruction()
         if mode == Mode.POSITION:
-            return self.mem[ivalue]
+            return self[ivalue]
         elif mode == Mode.IMMEDIATE:
             return ivalue
-        else:
-            raise Exception(f"Unimplemented mode: {mode.name}")
+        elif mode == Mode.RELATIVE:
+            return self[self.relbase + ivalue]
 
     def set_at_parameter(self, value):
-        self.mem[self.next_instruction()] = value
+        mode = Mode(self.modes % 10)
+        self.modes //= 10
+        ivalue = self.next_instruction()
+        if mode == Mode.POSITION:
+            addr = ivalue
+        elif mode == Mode.IMMEDIATE:
+            raise Exception("Can't set a value in immediate mode")
+        elif mode == Mode.RELATIVE:
+            addr = self.relbase + ivalue
+        self.mem[addr] = value
 
     def step(self):
         """Run the next instruction, return True if we should keep going."""
@@ -77,10 +92,10 @@ class IntCode:
         elif op == Op.LESS_THAN:
             result = int(self.get_parameter_value() < self.get_parameter_value())
             self.set_at_parameter(result)
+        elif op == Op.ADJREL:
+            self.relbase += self.get_parameter_value()
         elif op == Op.STOP:
             return False
-        else:
-            raise Exception(f"Unimplemented op: {op.name}")
         return True
 
     def run(self):
@@ -91,7 +106,7 @@ class IntCode:
 def final_state(first):
     cpu = IntCode(first)
     cpu.run()
-    return cpu.mem
+    return [cpu[addr] for addr in range(max(cpu.mem)+1)]
 
 # The tests from day 2.
 @pytest.mark.parametrize("first, last", [
@@ -118,7 +133,7 @@ class CagedIntCode(IntCode):
         super().__init__(mem, input_fn=self.inputs.pop, output_fn=self.outputs.append)
 
 
-def produces(mem, inputs):
+def produces(mem, inputs=()):
     cpu = CagedIntCode(mem, inputs)
     cpu.run()
     return cpu.outputs
@@ -161,3 +176,17 @@ def test_produces(mem, inputs, outputs):
 def program_from_file(fname):
     with open(fname) as f:
         return [int(v) for v in f.read().split(",")]
+
+
+# Day 9 tests
+def test_day9_1():
+    program = [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
+    assert produces(program) == program
+
+def test_day9_2():
+    program = [1102,34915192,34915192,7,4,7,99,0]
+    assert produces(program) == [34915192*34915192]
+
+def test_day9_3():
+    program = [104,1125899906842624,99]
+    assert produces(program) == [1125899906842624]
