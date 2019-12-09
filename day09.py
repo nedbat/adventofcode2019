@@ -10,3 +10,6 @@ if __name__ == "__main__":
         print(f"Incorrect functioning: {output}")
     else:
         print(f"Part 1: the BOOST keycode is {output[0]}")
+
+    output = produces(program_from_file("day09_input.txt"), [2])
+    print(f"Part 2: the coordinates of the distress signal are {output[0]}")
