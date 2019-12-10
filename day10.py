@@ -235,7 +235,7 @@ def radians_to_delta(dx, dy):
 
 def distance_to_delta(dx, dy):
     """Not exact distance, just sorts the same for the same angle."""
-    return dx * dx
+    return dx * dx + dy * dy
 
 def test_radians_to_delta():
     angles = [radians_to_delta(dx, dy) for dx, dy in [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]]
@@ -268,23 +268,20 @@ def test_best_spot_trig(belt_text, x, y, vis):
     assert best_spot_trig(belt) == (x, y, vis)
 
 def asteroid_vaporization_order(belt, x, y):
-    polars = list(asteroid_polars(belt, x, y))
+    polars = asteroid_polars(belt, x, y)
     by_angle = collections.defaultdict(list)
-    for ax, ay, ang, dist in polars:
-        by_angle[ang].append((dist, ax, ay))
+    for ax, ay, angle, dist in polars:
+        by_angle[angle].append((dist, ax, ay))
     for angle, asteroids in by_angle.items():
         by_angle[angle] = sorted(asteroids)
+    rotations = max(len(asts) for asts in by_angle.values())
     angles = sorted(by_angle)
-    while True:
-        any_found = False
+    for rotation in range(rotations):
         for angle in angles:
             asteroids = by_angle[angle]
-            if asteroids:
-                dist, ax, ay = asteroids.pop()
+            if len(asteroids) > rotation:
+                dist, ax, ay = asteroids[rotation]
                 yield ax, ay
-                any_found = True
-        if not any_found:
-            break
 
 def test_asteroid_vaporization_order():
     belt = Belt.read(TEST4)
@@ -301,7 +298,7 @@ def part2():
     assert vis == 282
     order = list(asteroid_vaporization_order(belt, x, y))
     th200 = order[199]
-    print(f"Part 2: the 200th asteroid vaporized is at {th200}")
+    print(f"Part 2: the 200th asteroid vaporized is at {th200}, answer is {th200[0]*100 + th200[1]}")
 
 if __name__ == "__main__":
     part2()
