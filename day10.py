@@ -1,7 +1,8 @@
 # https://adventofcode.com/2019/day/10
 
-from math import gcd
+import collections
 import itertools
+import math
 import string
 import typing
 
@@ -152,7 +153,7 @@ def multiples(cx, cy, dx, dy, start_mult, width, height):
             break
 
 def step_size(dx, dy):
-    d = gcd(dx, dy)
+    d = math.gcd(dx, dy)
     return dx // d, dy // d, d
 
 def visible(belt, x, y):
@@ -190,24 +191,26 @@ def spot_ratings(belt):
         vis = visible(belt, x, y)
         yield x, y, len(vis)
 
+TEST0_RATINGS = {(1, 0, 7), (4, 0, 7), (0, 2, 6), (1, 2, 7), (2, 2, 7), (3, 2, 7), (4, 2, 5), (4, 3, 7), (3, 4, 8), (4, 4, 7)}
+
 def test_spot_ratings():
     belt = Belt.read(TEST0)
     ratings = set(spot_ratings(belt))
-    assert ratings == {(1, 0, 7), (4, 0, 7), (0, 2, 6), (1, 2, 7), (2, 2, 7), (3, 2, 7), (4, 2, 5), (4, 3, 7), (3, 4, 8), (4, 4, 7)}
+    assert ratings == TEST0_RATINGS
 
 def best_spot(belt):
     return max(spot_ratings(belt), key=lambda x_y_vis: x_y_vis[2])
 
-@pytest.mark.parametrize("belt_text, x, y, vis", [
+BEST_SPOT_TESTS = [
     (TEST0, 3, 4, 8),
     (TEST1, 5, 8, 33),
     (TEST2, 1, 2, 35),
     (TEST3, 6, 3, 41),
     (TEST4, 11, 13, 210),
-])
+]
+@pytest.mark.parametrize("belt_text, x, y, vis", BEST_SPOT_TESTS)
 def test_best_spot(belt_text, x, y, vis):
     belt = Belt.read(belt_text)
-    print(sorted(belt))
     assert best_spot(belt) == (x, y, vis)
 
 def the_belt():
@@ -220,3 +223,85 @@ def part1():
 
 if __name__ == "__main__":
     part1()
+
+
+# Part 2 makes clear that I should have been using trig all along.
+
+def radians_to_delta(dx, dy):
+    a = math.atan2(dx, -dy)
+    if a < 0:
+        a += 2 * math.pi
+    return a
+
+def distance_to_delta(dx, dy):
+    """Not exact distance, just sorts the same for the same angle."""
+    return dx * dx
+
+def test_radians_to_delta():
+    angles = [radians_to_delta(dx, dy) for dx, dy in [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]]
+    assert sorted(angles) == angles
+
+def asteroid_polars(belt, cx, cy):
+    """Report on asteroids in polar coordinates from cx, cy"""
+    for ax, ay in belt:
+        if (ax, ay) == (cx, cy):
+            continue
+        dx, dy = ax - cx, ay - cy
+        yield ax, ay, radians_to_delta(dx, dy), distance_to_delta(dx, dy)
+
+def visible_trig(belt, x, y):
+    polars = list(asteroid_polars(belt, x, y))
+    angles = set(a for ax, ay, a, d in polars)
+    return len(angles)
+
+def spot_ratings_trig(belt):
+    for x, y in belt:
+        vis = visible_trig(belt, x, y)
+        yield x, y, vis
+
+def best_spot_trig(belt):
+    return max(spot_ratings_trig(belt), key=lambda x_y_vis: x_y_vis[2])
+
+@pytest.mark.parametrize("belt_text, x, y, vis", BEST_SPOT_TESTS)
+def test_best_spot_trig(belt_text, x, y, vis):
+    belt = Belt.read(belt_text)
+    assert best_spot_trig(belt) == (x, y, vis)
+
+def asteroid_vaporization_order(belt, x, y):
+    polars = list(asteroid_polars(belt, x, y))
+    by_angle = collections.defaultdict(list)
+    for ax, ay, ang, dist in polars:
+        by_angle[ang].append((dist, ax, ay))
+    for angle, asteroids in by_angle.items():
+        by_angle[angle] = sorted(asteroids)
+    angles = sorted(by_angle)
+    while True:
+        any_found = False
+        for angle in angles:
+            asteroids = by_angle[angle]
+            if asteroids:
+                dist, ax, ay = asteroids.pop()
+                yield ax, ay
+                any_found = True
+        if not any_found:
+            break
+
+def test_asteroid_vaporization_order():
+    belt = Belt.read(TEST4)
+    bx, by, vis = best_spot_trig(belt)
+    assert vis == 210
+    order = list(asteroid_vaporization_order(belt, bx, by))
+    print(order)
+    assert order[0] == (11, 12)
+    assert order[199] == (8, 2)
+
+def part2():
+    belt = the_belt()
+    x, y, vis = best_spot_trig(belt)
+    assert vis == 282
+    order = list(asteroid_vaporization_order(belt, x, y))
+    th200 = order[199]
+    print(f"Part 2: the 200th asteroid vaporized is at {th200}")
+
+if __name__ == "__main__":
+    part2()
