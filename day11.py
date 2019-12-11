@@ -38,6 +38,16 @@ class Hull:
     def __setitem__(self, coords, val):
         self.panels[coords] = val
 
+    def draw(self):
+        lx = min(x for x, y in self.panels)
+        ux = max(x for x, y in self.panels)
+        ly = min(y for x, y in self.panels)
+        uy = max(y for x, y in self.panels)
+        for y in range(ly, uy + 1):
+            for x in range(lx, ux + 1):
+                print('.#'[self[x, y]], end='')
+            print()
+
 
 class Robot:
     def __init__(self, program, hull):
@@ -76,3 +86,15 @@ def part1():
 
 if __name__ == "__main__":
     part1()
+
+def part2():
+    the_program = program_from_file("day11_input.txt")
+    hull = Hull()
+    robot = Robot(the_program, hull)
+    robot.paint(1)
+    robot.run()
+    print(f"Part 2:")
+    hull.draw()
+
+if __name__ == "__main__":
+    part2()
