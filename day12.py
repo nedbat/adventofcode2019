@@ -1,7 +1,10 @@
 # https://adventofcode.com/2019/day/12
 
+import functools
 import itertools
+import math
 
+import pytest
 
 class Xyz:
     def __init__(self, x, y, z):
@@ -113,4 +116,60 @@ if __name__ == "__main__":
     energy = total_energy(after_steps(INPUT, 1000))
     print(f"Part 1: total energy after 1000 steps is {energy}")
 
+# To do part 2, we need to work with each dimension separately.
 
+def simulate_one_axis(poss):
+    moons = [(p, 0) for p in poss]
+    while True:
+        yield tuple(moons)
+        gravity = [sum([sign(p2 - p1) for p2, _ in moons]) for p1, _ in moons]
+        vels = [v + g for (p, v), g in zip(moons, gravity)]
+        moons = [(p + nv, nv) for (p, v), nv in zip(moons, vels)]
+
+def test_simulate2():
+    # The x axis from TEST1
+    steps = simulate_one_axis((-1, 2, 4, 3))
+    step10 = next(itertools.islice(steps, 10, 11))
+    assert step10 == ((2, -3), (1, -1), (3, 3), (2, 1))
+
+def find_cycle(poss):
+    """Find the head and body of a cycle in the values."""
+    steps = simulate_one_axis(poss)
+    seen = {}   # map positions to step number
+    for i, step in enumerate(steps):
+        if step in seen:
+             head = seen[step]
+             return head, i - head
+        seen[step] = i
+
+def lcm2(a, b):
+    return int(a * b / math.gcd(a, b))
+
+def lcm(nums):
+    return functools.reduce(lcm2, nums)
+
+@pytest.mark.parametrize("nums, res", [
+    ([2, 6, 100], 300),
+    ([7, 13, 11], 1001),
+    ([10, 10, 20], 20),
+])
+def test_lcm(nums, res):
+    assert lcm(nums) == res
+
+def first_repeat(moons):
+    axes = [[getattr(m.pos, a) for m in moons] for a in "xyz"]
+    cycles = [find_cycle(axis) for axis in axes]
+    head = max(chead for chead, _ in cycles)
+    body = lcm([cbody for _, cbody in cycles])
+    return head + body
+
+@pytest.mark.parametrize("moons, repeat", [
+    (TEST1, 2772),
+    (TEST2, 4686774924),
+])
+def test_first_repeat(moons, repeat):
+    assert first_repeat(moons) == repeat
+
+if __name__ == "__main__":
+    ans = first_repeat(INPUT)
+    print(f"Part 2: it takes {ans} steps to exactly match a previous state")
