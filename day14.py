@@ -96,9 +96,10 @@ def test_parse_reactions():
         'FUEL': (1, [(7, 'A'), (1, 'E')]),
     }
 
-def ore_needed(reactions):
+def make_one_fuel(reactions, have=()):
     need = collections.defaultdict(int)
     extra = collections.defaultdict(int)
+    extra.update(have)
 
     need['FUEL'] = 1
 
@@ -121,7 +122,10 @@ def ore_needed(reactions):
         for thing, amount in list(need.items()):
             if amount == 0:
                 del need[thing]
-    return need['ORE']
+    return need['ORE'], tuple(sorted(extra.items()))
+
+def ore_needed(reactions):
+    return make_one_fuel(reactions)[0]
 
 @pytest.mark.parametrize("reactions, ore", [
     (TEST1, 31),
@@ -137,3 +141,46 @@ if __name__ == "__main__":
     with open("day14_input.txt") as f:
         ore = ore_needed(parse_reactions(f))
     print(f"Part 1: need {ore} ore")
+
+def find_cycle(reactions):
+    """Returns head_fuel, head_ore, cycle_fuel, cycle_ore """
+    # maps have-states to fuel number
+    ores = []
+    total_fuel = 0
+    have = ()
+    while True:
+        ore, have = make_one_fuel(reactions, have)
+        total_fuel += 1
+        ores.append(ore)
+        if all(x == 0 for _, x in have):
+            return total_fuel, ores
+        
+def total_fuel(reactions, ore_on_hand):
+    cycle_info = find_cycle(reactions)
+    cycle_fuel, ores = cycle_info
+    cycle_ore = sum(ores)
+    cycles = ore_on_hand // cycle_ore
+    ore_left = ore_on_hand - cycles * cycle_ore
+    total_fuel = cycles * cycle_fuel
+    for ore in ores:
+        if ore > ore_left:
+            break
+        ore_left -= ore
+        total_fuel += 1
+    return total_fuel
+
+@pytest.mark.parametrize("reactions, fuel", [
+    (TEST1, 34482758620),
+    (TEST2, 6323777403),
+    (TEST3, 82892753),
+    (TEST4, 5586022),
+    (TEST5, 460664),
+])
+def test_total_fuel(reactions, fuel):
+    assert total_fuel(parse_reactions(reactions), 1_000_000_000_000) == fuel
+
+if __name__ == "__main__":
+    with open("day14_input.txt") as f:
+        reactions = parse_reactions(f)
+    fuel = total_fuel(reactions, 1_000_000_000_000)
+    print(f"Part 2: with 1 trillion ore, we can make {fuel} fuel")
