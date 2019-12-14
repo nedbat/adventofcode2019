@@ -96,12 +96,12 @@ def test_parse_reactions():
         'FUEL': (1, [(7, 'A'), (1, 'E')]),
     }
 
-def make_one_fuel(reactions, have=()):
+def make_fuel(reactions, fuel=1, have=()):
     need = collections.defaultdict(int)
     extra = collections.defaultdict(int)
     extra.update(have)
 
-    need['FUEL'] = 1
+    need['FUEL'] = fuel
 
     while True:
         if 'ORE' in need and len(need) == 1:
@@ -124,8 +124,8 @@ def make_one_fuel(reactions, have=()):
                 del need[thing]
     return need['ORE'], tuple(sorted(extra.items()))
 
-def ore_needed(reactions):
-    return make_one_fuel(reactions)[0]
+def ore_needed(reactions, fuel=1):
+    return make_fuel(reactions, fuel)[0]
 
 @pytest.mark.parametrize("reactions, ore", [
     (TEST1, 31),
@@ -142,6 +142,7 @@ if __name__ == "__main__":
         ore = ore_needed(parse_reactions(f))
     print(f"Part 1: need {ore} ore")
 
+# Finding cycles: way too slow.
 def find_cycle(reactions):
     """Returns head_fuel, head_ore, cycle_fuel, cycle_ore """
     # maps have-states to fuel number
@@ -149,7 +150,7 @@ def find_cycle(reactions):
     total_fuel = 0
     have = ()
     while True:
-        ore, have = make_one_fuel(reactions, have)
+        ore, have = make_fuel(reactions, have)
         total_fuel += 1
         ores.append(ore)
         if all(x == 0 for _, x in have):
@@ -168,6 +169,20 @@ def total_fuel(reactions, ore_on_hand):
         ore_left -= ore
         total_fuel += 1
     return total_fuel
+
+# Binary search.
+def total_fuel(reactions, ore_on_hand):
+    lo, hi = 1, ore_on_hand
+    assert ore_needed(reactions, hi) > ore_on_hand
+
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        mid_ore = ore_needed(reactions, mid)
+        if mid_ore > ore_on_hand:
+            hi = mid
+        else:
+            lo = mid
+    return lo
 
 @pytest.mark.parametrize("reactions, fuel", [
     (TEST1, 34482758620),
