@@ -131,9 +131,9 @@ class Robot:
         #print(f"output with state {self.state}, pos = {self.pos}, next_pos = {next_pos}")
         getattr(self, self.state + '_output')(val, next_pos)
         self.pos = next_pos
-        #print("-" * 80)
-        #self.draw()
-        #time.sleep(.001)
+        print("-" * 80)
+        self.draw()
+        time.sleep(.001)
 
     def pick_a_point_input(self):
         #print(f"picking point")
@@ -219,10 +219,10 @@ class Robot:
         if Point(x, y) in self.points_to_explore:
             return '?'
         if Point(x, y) in self.moves_to_point:
-            return '.'
+            return '·'
 
     def draw(self):
-        self.tank.draw(' #', self.draw_fn)
+        self.tank.draw(' █', self.draw_fn)
 
     def run(self):
         with term.fullscreen():
