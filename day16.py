@@ -20,22 +20,24 @@ def test_repeating_pattern():
 def fft_one_out(signal, i):
     total = 0
     for s, m in zip(signal, repeating_pattern(i)):
-        if m == 0:
-            continue
-        s = int(s)
-        total += s * m
-    return str(total)[-1]
+        if m:
+            total += s * m
+    if total >= 0:
+        return total % 10
+    else:
+        return -(total % -10)
 
 def fft(signal):
-    return "".join(fft_one_out(signal, i+1) for i in range(len(signal)))
-
-def test_fft():
-    assert fft("12345678") == "48226158"
+    return [fft_one_out(signal, i+1) for i in range(len(signal))]
 
 def fftn(signal, n):
+    signal = list(int(s) for s in signal)
     for _ in range(n):
         signal = fft(signal)
-    return signal
+    return "".join(str(s) for s in signal)
+
+def test_fft():
+    assert fftn("12345678", 1) == "48226158"
 
 @pytest.mark.parametrize("signal, output", [
     ('80871224585914546619083218645595', '24176176'),
@@ -50,3 +52,36 @@ INPUT = '59782619540402316074783022180346847593683757122943307667976220344797950
 if __name__ == '__main__':
     digit8 = fftn(INPUT, 100)[:8]
     print(f"Part 1: first eight in the final output list are {digit8}")
+
+
+def end_of_fft(rsignal):
+    nsig = []
+    acc = 0
+    for s in rsignal:
+        acc += s
+        nsig.append(acc % 10)
+    return nsig
+
+def end_fftn(signal, n):
+    signal = list(int(s) for s in reversed(signal))
+    for _ in range(n):
+        signal = end_of_fft(signal)
+    return "".join(str(s) for s in reversed(signal))
+
+def real_decode(signal):
+    offset = int(signal[:7])
+    signal *= 10000
+    signal = signal[offset:]
+    signal = end_fftn(signal, 100)
+    return signal[:8]
+    
+@pytest.mark.parametrize("signal, output", [
+    ('03036732577212944063491565474664', '84462026'),
+    ('02935109699940807407585447034323', '78725270'),
+    ('03081770884921959731165446850517', '53553731'),
+])
+def test_real_decode(signal, output):
+    assert real_decode(signal) == output
+
+if __name__ == '__main__':
+    print(f"Part 2: the eight-digit message is {real_decode(INPUT)}")
