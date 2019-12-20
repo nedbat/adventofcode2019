@@ -151,3 +151,92 @@ if __name__ == "__main__":
     with open("day18_input.txt") as f:
         shortest = shortest_path(f, log=1)
     print(f"Part 1: the shortest path is {shortest}")
+
+
+class MultiVault(Vault):
+    def __init__(self):
+        super().__init__()
+        self.entrances = []
+
+    @classmethod
+    def from_lines(cls, lines):
+        vault = super().from_lines(lines)
+        vault.create_entrances()
+        return vault
+
+    def create_entrances(self):
+        ex, ey = self.entrance
+        del self.cells[ex, ey]
+        del self.cells[ex - 1, ey]
+        del self.cells[ex, ey - 1]
+        del self.cells[ex + 1, ey]
+        del self.cells[ex, ey + 1]
+        self.entrances = (
+            (ex - 1, ey - 1),
+            (ex + 1, ey - 1),
+            (ex + 1, ey + 1),
+            (ex - 1, ey + 1),
+        )
+
+
+class MultiSearchState(State):
+    def __init__(self, vault, keys="", pos=None):
+        self.vault = vault
+        self.keys = keys
+        self.pos = pos or vault.entrances
+
+    def __repr__(self):
+        return f"<{self.summary()}>"
+
+    def __hash__(self):
+        return hash((self.keys, self.pos))
+
+    def __eq__(self, other):
+        return self.keys == other.keys and self.pos == other.pos
+
+    def is_goal(self):
+        return len(self.keys) == len(self.vault.keys)
+
+    def next_states(self, cost):
+        for ipos, pos in enumerate(self.pos):
+            for npos in neighbors(pos):
+                nch = self.vault.cells.get(npos)
+                if nch is None:
+                    continue
+                if nch in string.ascii_uppercase:
+                    if nch.lower() not in self.keys:
+                        continue
+                nkeys = self.keys
+                if nch in self.vault.keys and nch not in nkeys:
+                    nkeys = "".join(sorted(nkeys + nch))
+                nposs = tuple(npos if ii == ipos else pos for ii, pos in enumerate(self.pos))
+                yield MultiSearchState(self.vault, nkeys, nposs), cost + 1
+
+    def same_quadrant(self, pos1, pos2):
+        """Are pos1 and pos2 in the same quadrant?"""
+        x1, y1 = pos1
+        x2, y2 = pos2
+        xe, ye = self.vault.entrance
+        return (
+            (x1 < xe) == (x2 < xe) and
+            (y1 < ye) == (y2 < ye)
+        )
+
+    def guess_completion_cost(self):
+        mores = [[] for _ in self.pos]
+        for key, kpos in self.vault.keys.items():
+            if key not in self.keys:
+                # Find the robot in the same quadrant as this key.
+                for pos, more in zip(self.pos, mores):
+                    if self.same_quadrant(pos, kpos):
+                        more.append(distance_guess(pos, kpos) - 1)
+        return sum(max(more, default=0) for more in mores) + sum(len(more) for more in mores)
+
+    def summary(self):
+        return f"At {self.pos}, has {self.keys!r}"
+
+if __name__ == "__main__":
+    with open("day18_input.txt") as f:
+        vault = MultiVault.from_lines(f)
+    walked = search(MultiSearchState(vault), log=1)
+    print(f"Part 2: the shortest path is {walked}")
