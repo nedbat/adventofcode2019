@@ -1,6 +1,8 @@
 # https://adventofcode.com/2019/day/18
 
 import string
+import sys
+import textwrap
 
 import pytest
 
@@ -147,7 +149,7 @@ def test_shortest_path(lines, walked):
     assert shortest_path(lines.splitlines()) == walked
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and "1" in sys.argv:
     with open("day18_input.txt") as f:
         shortest = shortest_path(f, log=1)
     print(f"Part 1: the shortest path is {shortest}")
@@ -225,18 +227,53 @@ class MultiSearchState(State):
     def guess_completion_cost(self):
         mores = [[] for _ in self.pos]
         for key, kpos in self.vault.keys.items():
+            #print(f"Considering key {key!r} at {kpos}")
             if key not in self.keys:
                 # Find the robot in the same quadrant as this key.
                 for pos, more in zip(self.pos, mores):
                     if self.same_quadrant(pos, kpos):
-                        more.append(distance_guess(pos, kpos) - 1)
-        return sum(max(more, default=0) for more in mores) + sum(len(more) for more in mores)
+                        #print(f"Robot {pos} can get it in {distance_guess(pos, kpos)} steps")
+                        more.append(distance_guess(pos, kpos))
+        #print(f"mores = {mores}")
+        guess = sum(max(more, default=0) for more in mores)
+        #print(f"guess = {guess}")
+        return guess
 
     def summary(self):
         return f"At {self.pos}, has {self.keys!r}"
 
-if __name__ == "__main__":
+
+def test_multi():
+    vault = MultiVault.from_lines(textwrap.dedent("""\
+        #######
+        #a.#Cd#
+        ##...##
+        ##.@.##
+        ##...##
+        #cB#Ab#
+        #######
+        """).splitlines())
+    walked = search(MultiSearchState(vault), log=1)
+    assert walked == 8
+
+def test_multi2():
+    vault = MultiVault.from_lines(textwrap.dedent("""\
+        #############
+        #g#f.D#..h#l#
+        #F###e#E###.#
+        #dCba...BcIJ#
+        #####.@.#####
+        #nK.L...G...#
+        #M###N#H###.#
+        #o#m..#i#jk.#
+        #############
+        """).splitlines())
+    walked = search(MultiSearchState(vault), log=1)
+    assert walked == 72
+
+
+if __name__ == "__main__" and "2" in sys.argv:
     with open("day18_input.txt") as f:
         vault = MultiVault.from_lines(f)
-    walked = search(MultiSearchState(vault), log=1)
+    walked = search(MultiSearchState(vault), debug=True)
     print(f"Part 2: the shortest path is {walked}")

@@ -103,10 +103,10 @@ class AStar:
         self.costs[state] = cost
         self.candidates.add(state, cost + guess)
 
-    def search(self, start_state, log_every=0):
+    def search(self, start_state, log=0, debug=False):
         inf = float('inf')
-        if log_every:
-            should_log = OnceEvery(seconds=log_every)
+        if log:
+            should_log = OnceEvery(seconds=log)
         else:
             should_log = None
         self.add_candidate(start_state, 0)
@@ -118,6 +118,8 @@ class AStar:
                 except IndexError:
                     raise Exception("No solution") from None
                 cost = self.costs[best]
+                if debug:
+                    print(f"Best now is {best.summary()}, cost = {cost}")
                 if best.is_goal():
                     return cost
                 if should_log and should_log.now():
@@ -131,10 +133,10 @@ class AStar:
                         self.add_candidate(nstate, ncost)
                         self.came_from[nstate] = best
         finally:
-            if log_every:
+            if log:
                 print(f"At end: {len(self.visited):,d} visited, {len(self.candidates):,d} candidates remaining")
 
 
-def search(start_state, log=False):
+def search(*args, **kwargs):
     """Search a state space, starting with `start_state`. Returns the cost to reach the goal."""
-    return AStar().search(start_state, log)
+    return AStar().search(*args, **kwargs)
