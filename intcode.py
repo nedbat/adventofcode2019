@@ -29,6 +29,8 @@ class IntCode:
         self.mem = dict(enumerate(mem))
         self.input_fn = input_fn
         self.output_fn = output_fn
+        self.stopped = False
+        self.steps = 0
 
     def __getitem__(self, addr):
         return self.mem.get(addr, 0)
@@ -63,6 +65,7 @@ class IntCode:
 
     def step(self):
         """Run the next instruction, return True if we should keep going."""
+        self.steps += 1
         instruction = self.next_instruction()
         op = Op(instruction % 100)
         self.modes = instruction // 100
@@ -95,6 +98,7 @@ class IntCode:
         elif op == Op.ADJREL:
             self.relbase += self.get_parameter_value()
         elif op == Op.STOP:
+            self.stopped = True
             return False
         return True
 
