@@ -12,7 +12,7 @@ INPUT = """\
 
 MAXX = MAXY = 5
 
-def read_eris(text):
+def read_eris1(text):
     eris = set()
     for y, line in enumerate(text.splitlines()):
         for x, ch in enumerate(line):
@@ -20,22 +20,22 @@ def read_eris(text):
                 eris.add((x, y))
     return eris
 
-def adjacent(x, y):
+def adjacent1(x, y):
     yield x - 1, y
     yield x, y - 1
     yield x + 1, y
     yield x, y + 1
 
-def neighbors(eris, x, y):
-    return sum(int(cell in eris) for cell in adjacent(x, y))
+def neighbors1(eris, x, y):
+    return sum(int(cell in eris) for cell in adjacent1(x, y))
 
-def all_cells(eris):
+def all_cells1(eris):
     return itertools.product(range(MAXX), range(MAXY))
 
-def next_eris(e1):
+def next_eris1(e1):
     e2 = set()
-    for x, y in all_cells(e1):
-        ncount = neighbors(e1, x, y)
+    for x, y in all_cells1(e1):
+        ncount = neighbors1(e1, x, y)
         if (x, y) in e1:
             alive = ncount == 1
         else:
@@ -44,10 +44,10 @@ def next_eris(e1):
             e2.add((x, y))
     return e2
 
-def iter_eris(eris):
+def iter_eris1(eris):
     while True:
         yield eris
-        eris = next_eris(eris)
+        eris = next_eris1(eris)
 
 
 TEST_STATES = [
@@ -97,21 +97,21 @@ TEST_STATES = [
 """,
 ]
 
-def test_next_eris():
+def test_next_eris1():
     for before, after in zip(TEST_STATES, TEST_STATES[1:]):
-        ebefore = read_eris(before)
-        eafter = read_eris(after)
-        assert next_eris(ebefore) == eafter
+        ebefore = read_eris1(before)
+        eafter = read_eris1(after)
+        assert next_eris1(ebefore) == eafter
 
-def test_iter_eris():
-    gold = map(read_eris, TEST_STATES)
-    sut = iter_eris(read_eris(TEST_STATES[0]))
+def test_iter_eris1():
+    gold = map(read_eris1, TEST_STATES)
+    sut = iter_eris1(read_eris1(TEST_STATES[0]))
     assert all(e1 == e2 for e1, e2 in zip(sut, gold))
 
 
 def first_repeated(eris):
     eriss = set()
-    for estate in iter_eris(eris):
+    for estate in iter_eris1(eris):
         etuple = tuple(sorted(estate))
         if etuple in eriss:
             return estate
@@ -119,17 +119,17 @@ def first_repeated(eris):
 
 def biodiversity(eris):
     biodiv = 0
-    for p2, (y, x) in enumerate(all_cells(eris)):
+    for p2, (y, x) in enumerate(all_cells1(eris)):
         if (x, y) in eris:
             biodiv += 2 ** p2
     return biodiv
 
 def test_first_repeated():
-    eris = first_repeated(read_eris(TEST_STATES[0]))
+    eris = first_repeated(read_eris1(TEST_STATES[0]))
     assert biodiversity(eris) == 2129920
 
 if __name__ == "__main__":
-    biodiv = biodiversity(first_repeated(read_eris(INPUT)))
+    biodiv = biodiversity(first_repeated(read_eris1(INPUT)))
     print(f"Part 1: biodiversity of the first repeated state is {biodiv}")
 
 # Part 1 was easy, so Part 2 is a mind-bender :)
