@@ -308,17 +308,13 @@ class MultiSearchState(State):
         mores = [[] for _ in self.poss]
         num_keys = 0
         for key, kpos in self.vault.keys.items():
-            #print(f"Considering key {key!r} at {kpos}")
             if key not in self.keys:
                 # Find the robot in the same quadrant as this key.
                 for pos, more in zip(self.poss, mores):
                     if self.same_quadrant(pos, kpos):
-                        #print(f"Robot {pos} can get it in {distance_guess(pos, kpos)} steps")
                         more.append(distance_guess(pos, kpos))
                 num_keys += 1
-        #print(f"mores = {mores}")
         guess = sum(max(more, default=0) for more in mores) + num_keys
-        #print(f"guess = {guess}")
         return guess
 
     def summary(self):
@@ -359,9 +355,3 @@ if __name__ == "__main__" and "2" in sys.argv:
         vault = MultiVault.from_lines(f)
     walked = search(MultiSearchState(vault), log=10)
     print(f"Part 2: the shortest path is {walked}")
-
-if 0:
-    with open("day18_input.txt") as f:
-        vault = Vault.from_lines(f)
-    print_vault(vault)
-
