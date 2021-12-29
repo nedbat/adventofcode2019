@@ -77,6 +77,12 @@ class Vault:
 
     @classmethod
     def from_lines(cls, lines):
+        vault = cls._read_grid(lines)
+        vault.graph = graph_for_vault(vault)
+        return vault
+
+    @classmethod
+    def _read_grid(cls, lines):
         vault = cls()
         for y, line in enumerate(lines):
             for x, ch in enumerate(line.strip()):
@@ -87,7 +93,6 @@ class Vault:
                     vault.keys[ch] = (x, y)
                 if ch == '@':
                     vault.entrances.append((x, y))
-        vault.graph = graph_for_vault(vault)
         return vault
 
 def neighbors(pos):
@@ -238,8 +243,9 @@ if __name__ == "__main__" and "1" in sys.argv:
 class MultiVault(Vault):
     @classmethod
     def from_lines(cls, lines):
-        vault = super().from_lines(lines)
+        vault = cls._read_grid(lines)
         vault.create_entrances()
+        vault.graph = graph_for_vault(vault)
         return vault
 
     def create_entrances(self):
