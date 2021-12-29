@@ -305,6 +305,7 @@ class MultiSearchState(State):
         )
 
     def guess_completion_cost(self):
+        return 1
         mores = [[] for _ in self.poss]
         num_keys = 0
         for key, kpos in self.vault.keys.items():
